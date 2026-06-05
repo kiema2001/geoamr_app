@@ -115,12 +115,18 @@ def generate_amr_matrix(all_results_df):
         
     def drug_class_mapper(gene_name):
         gene_upper = str(gene_name).upper()
-        if any(x in gene_upper for x in ['GYRA', 'PARC']): return 'Fluoroquinolones (Ciprofloxacin)'
-        if any(x in gene_upper for x in ['PENA', 'BLATEM', 'BLA', 'NDM']): return 'Cephalosporins / Penicillins'
-        if any(x in gene_upper for x in ['TETM', 'TET']): return 'Tetracyclines'
-        if any(x in gene_upper for x in ['ERM', 'MPH', 'MTRR', 'MACA', 'MACB']): return 'Macrolides (Azithromycin)'
-        if any(x in gene_upper for x in ['APH', 'ANT', 'AAD', 'RPSL']): return 'Aminoglycosides'
-        if any(x in gene_upper for x in ['SUL', 'FOLA']): return 'Sulfonamides'
+        if any(x in gene_upper for x in ['GYRA', 'PARC']):
+            return 'Fluoroquinolones (Ciprofloxacin)'
+        if any(x in gene_upper for x in ['PENA', 'BLATEM', 'BLA', 'NDM']):
+            return 'Cephalosporins / Penicillins'
+        if any(x in gene_upper for x in ['TETM', 'TET']):
+            return 'Tetracyclines'
+        if any(x in gene_upper for x in ['ERM', 'MPH', 'MTRR', 'MACA', 'MACB']):
+            return 'Macrolides (Azithromycin)'
+        if any(x in gene_upper for x in ['APH', 'ANT', 'AAD', 'RPSL']):
+            return 'Aminoglycosides'
+        if any(x in gene_upper for x in ['SUL', 'FOLA']):
+            return 'Sulfonamides'
         return 'Other Resistance Trait'
 
     df_amr = all_results_df[all_results_df['Source DB'].isin(['resfinder', 'card', 'ncbi'])].copy()
@@ -140,7 +146,7 @@ def calculate_recombination_frequency(master_df):
             for i in range(len(sorted_genes)):
                 for j in range(i + 1, len(sorted_genes)):
                     distance = abs(sorted_genes.iloc[j]['Start'] - sorted_genes.iloc[i]['Start'])
-                    if distance <= 50000:  # Within 50kb - likely linked
+                    if distance <= 50000:
                         linkage_records.append({
                             'sample': sample,
                             'gene_a': sorted_genes.iloc[i]['Identified Gene'],
@@ -159,7 +165,6 @@ def calculate_nucleotide_diversity(master_df):
     if master_df.empty:
         return 0
     
-    # Use coverage and identity as proxies for diversity calculation
     amr_data = master_df[master_df['Source DB'].isin(['resfinder', 'card', 'ncbi'])]
     if len(amr_data) < 2:
         return 0
@@ -167,7 +172,6 @@ def calculate_nucleotide_diversity(master_df):
     avg_coverage = amr_data['% Coverage'].mean()
     avg_identity = amr_data['% Identity'].mean()
     
-    # Calculate diversity index (higher diversity = more variation from reference)
     diversity = (100 - avg_identity) / 100 * (avg_coverage / 100)
     return round(diversity, 6)
 
@@ -180,7 +184,6 @@ def perform_pca_analysis(master_df):
     if amr_data.empty:
         return None, None, None
     
-    # Create binary presence matrix
     binary_matrix = amr_data.pivot_table(
         index='Sample ID', 
         columns='Identified Gene', 
@@ -210,19 +213,16 @@ def create_network_plot(master_df):
     try:
         import networkx as nx
         
-        # Build co-occurrence network
         G = nx.Graph()
         amr_data = master_df[master_df['Source DB'].isin(['resfinder', 'card', 'ncbi'])]
         
         if amr_data.empty:
             return None
         
-        # Add nodes (genes)
         genes = amr_data['Identified Gene'].unique()
         for gene in genes:
             G.add_node(gene)
         
-        # Add edges based on co-occurrence in same sample
         for sample in amr_data['Sample ID'].unique():
             sample_genes = amr_data[amr_data['Sample ID'] == sample]['Identified Gene'].tolist()
             for i in range(len(sample_genes)):
@@ -242,14 +242,12 @@ def generate_pdf_report(summary_df, total_samples, recombination_freq, nucleotid
     pdf = FPDF()
     pdf.add_page()
     
-    # Title Block
     pdf.set_font("Helvetica", "B", 16)
     pdf.cell(0, 10, "GeoAMR Surveillance & Clinical Diagnostics Report", new_x="LMARGIN", new_y="NEXT", align="C")
     pdf.set_font("Helvetica", "", 10)
     pdf.cell(0, 6, "Produced by Henry - Automated Public Health Genomics Output", new_x="LMARGIN", new_y="NEXT", align="C")
     pdf.ln(8)
     
-    # Executive Metadata Section
     pdf.set_font("Helvetica", "B", 12)
     pdf.cell(0, 8, "1. Executive Batch Summary", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font("Helvetica", "", 10)
@@ -259,12 +257,10 @@ def generate_pdf_report(summary_df, total_samples, recombination_freq, nucleotid
     pdf.cell(0, 6, f"Nucleotide Diversity: {nucleotide_diversity:.6f}", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(5)
     
-    # Core Findings Table
     pdf.set_font("Helvetica", "B", 12)
     pdf.cell(0, 8, "2. High-Yield Target Annotations (Top Hits)", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(2)
     
-    # Render table headers securely
     pdf.set_font("Helvetica", "B", 9)
     pdf.cell(40, 7, "Sample ID", border=1)
     pdf.cell(30, 7, "Gene", border=1)
@@ -315,7 +311,6 @@ if uploaded_files:
             fasta_string = bytes_data.decode("utf-8")
             current_sample_name = os.path.splitext(file_obj.name)[0]
             
-            # Temporary disk caching
             temp_fasta_path = f"temp_{current_sample_name}.fasta"
             with open(temp_fasta_path, "w") as f:
                 f.write(fasta_string)
@@ -368,8 +363,6 @@ if uploaded_files:
                 final_amr_df = master_df[amr_mask]
                 if not final_amr_df.empty:
                     st.dataframe(final_amr_df, width="stretch")
-                    
-                    # Download button for AMR data
                     csv_amr = final_amr_df.to_csv(index=False)
                     st.download_button("📥 Download AMR Data (CSV)", csv_amr, "amr_data.csv", "text/csv")
                 else:
@@ -396,7 +389,6 @@ if uploaded_files:
                 sample_map_data = master_df[master_df['Sample ID'] == selected_map_sample]
                 
                 if not sample_map_data.empty:
-                    # Creating a beautiful interactive scatter track map
                     fig_map = px.scatter(
                         sample_map_data,
                         x="Start",
@@ -420,7 +412,6 @@ if uploaded_files:
                 st.markdown("Genes found in close physical proximity (<50kb):")
                 st.dataframe(linkage_df.head(20), width="stretch")
                 
-                # Visualize distances
                 if len(linkage_df) > 0:
                     fig_dist = px.bar(
                         linkage_df.head(20),
@@ -462,7 +453,6 @@ if uploaded_files:
             st.markdown("---")
             st.markdown("### 4b. Population Genomics: PCA & Genetic Similarity Network")
             
-            # PCA Analysis
             pca_result, explained_var, sample_names = perform_pca_analysis(master_df)
             if pca_result is not None and len(pca_result) >= 2:
                 pca_df = pd.DataFrame(pca_result, columns=['PC1', 'PC2'])
@@ -480,14 +470,13 @@ if uploaded_files:
             else:
                 st.info("Insufficient data for PCA analysis (need at least 2 samples with AMR genes).")
             
-            # Network Analysis
             G = create_network_plot(master_df)
             if G and G.number_of_nodes() > 0:
                 st.markdown("#### AMR Gene Co-occurrence Network")
-                st.info("Nodes represent AMR genes, edges represent co-occurrence in same genome. Edge thickness = co-occurrence frequency.")
+                st.info("Nodes represent AMR genes, edges represent co-occurrence in same genome.")
                 
-                # Create network visualization with plotly
                 try:
+                    import networkx as nx
                     pos = nx.spring_layout(G, k=1, iterations=50)
                     
                     edge_traces = []
@@ -548,7 +537,6 @@ if uploaded_files:
                     st.error(f"Reporting compilation warning: {str(pdf_err)}")
             
             with col_pdf2:
-                # Export all data as CSV
                 all_csv = master_df.to_csv(index=False)
                 st.download_button(
                     label="📊 Export All Data (CSV)",
