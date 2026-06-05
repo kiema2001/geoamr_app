@@ -1,8 +1,8 @@
-samtools
-minimap2
 wget
 curl
 git
 make
-gcc
 g++
+gcc
+libxml2-dev
+libxslt-dev
