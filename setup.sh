@@ -1,28 +1,27 @@
 #!/usr/bin/env bash
-
-# Exit immediately if a command exits with a non-zero status
 set -e
 
-echo "🧬 Starting GeoAMR Custom Bio-Environment Setup..."
+echo "🧬 Initializing Local Linuxbrew Environment..."
 
-# 1. Create a local bin directory inside your app directory
-mkdir -p /mount/src/geoamr_app/bin
-cd /mount/src/geoamr_app/bin
+# 1. Install Linuxbrew locally inside the runtime instance directory
+BREW_DIR="/mount/src/geoamr_app/.linuxbrew"
+if [ ! -d "$BREW_DIR" ]; then
+    git clone https://github.com/Homebrew/brew "$BREW_DIR/Homebrew"
+    mkdir "$BREW_DIR/bin"
+    ln -s "../Homebrew/bin/brew" "$BREW_DIR/bin/brew"
+fi
 
-# 2. Download the latest official NCBI AMRFinderPlus pre-compiled binary for Linux
-echo "📥 Fetching latest AMRFinderPlus binaries from NCBI..."
-wget -q https://ftp.ncbi.nlm.nih.gov/pathogen/Antimicrobial_resistance/AMRFinderPlus/binaries/latest/amrfinder_latest_amd64.tar.gz
+# 2. Activate Homebrew paths dynamically
+export PATH="$BREW_DIR/bin:$PATH"
+eval "$($BREW_DIR/bin/brew shellenv)"
 
-# 3. Extract the binaries
-echo "📦 Extracting binaries..."
-tar -xzf amrfinder_latest_amd64.tar.gz
-rm amrfinder_latest_amd64.tar.gz
+# 3. Add the Bioconda package taps and install AMRFinderPlus
+echo "🧪 Installing NCBI AMRFinderPlus via Homebrew..."
+brew tap brewsci/bio
+brew install amrfinder
 
-# 4. Add the local bin folder to the system PATH temporarily so the app can find it
-export PATH="/mount/src/geoamr_app/bin:$PATH"
+# 4. Pull and build the latest CDC/NIH AMR database definitions
+echo "🔄 Updating Antimicrobial Resistance Database definitions..."
+amrfinder --update
 
-# 5. Download and compile the latest CDC/NIH AMR database
-echo "🔄 Initializing and updating NCBI AMR Database..."
-./amrfinder --update
-
-echo "✅ GeoAMR Environment Setup Complete!"
+echo "✅ AMRFinderPlus setup is complete!"
