@@ -12,6 +12,12 @@ from Bio import SeqIO
 import numpy as np
 import re
 
+# --- Ensure Custom Binary Path is Recognized by Streamlit ---
+custom_bin_path = "/mount/src/geoamr_app/bin"
+if os.path.exists(custom_bin_path):
+    if custom_bin_path not in os.environ["PATH"]:
+        os.environ["PATH"] = f"{custom_bin_path}:{os.environ['PATH']}"
+
 # --- Page Configuration ---
 st.set_page_config(
     page_title="GeoAMR - Clinical Diagnostics & Discovery Suite",
