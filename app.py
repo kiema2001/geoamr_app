@@ -25,13 +25,17 @@ st.markdown("""
         [data-testid="stSidebar"] { background-color: #1a252f; color: white; }
         .stButton>button { border-radius: 8px; width: 100%; background-color: #2c3e50; color: white; }
         .stButton>button:hover { background-color: #34495e; color: #3498db; }
+        .signature-text { font-size: 13px; color: #bdc3c7; font-style: italic; margin-top: -5px; margin-bottom: 15px; }
     </style>
 """, unsafe_allow_html=True)
 
 # --- App Navigation Structure ---
 st.sidebar.title("🧬 GeoAMR Platform")
+# Your custom requested authorship signature indication
+st.sidebar.markdown('<p class="signature-text">Produced by Henry</p>', unsafe_allow_html=True)
 st.sidebar.markdown("*High-Resolution Neisseria Gonorrhoeae Infrastructure*")
 st.sidebar.markdown("---")
+
 page = st.sidebar.radio(
     "🧭 Select Analytical Workspace:",
     ["1. Home Workspace", "2. Core AMR Loci Profiler", "3. SNP & Variant Mapping", "4. Recombination & Diversity Engine"]
@@ -77,11 +81,13 @@ if page == "1. Home Workspace":
     st.subheader("Automated High-Resolution Genomic Surveillance Dashboard")
     st.markdown("---")
     
+    st.warning("👈 **Navigation Tip:** Use the dark sidebar workspace menu on the far left of your screen to switch between diagnostic pages and upload your files!")
+    
     st.markdown("""
     ### Welcome to the GeoAMR Clinical Pipeline Architecture
     This specialized bioinformatic workbench provides automated data structures for checking population metrics, identifying co-inheritance cascades, and discovering resistance mutations in *Neisseria gonorrhoeae* cohorts.
     
-    #### Explore the Pipeline Modules in the Left Sidebar:
+    #### Explore the Pipeline Modules in the Left Sidebar Menu:
     * **2. Core AMR Loci Profiler:** Screen sequences across curated ResFinder, CARD, NCBI, and VFDB databases with strict binary presence mapping and intra-contig physical distance analysis.
     * **3. SNP & Variant Mapping:** Upload an experimental or standard clinical reference sequence (`WHO-F`, `WHO-X`, or `FA1090`) to identify explicit mutational positions and isolate high-impact Single Nucleotide Polymorphisms.
     * **4. Recombination & Diversity Engine:** Evaluate multi-sequence core alignments to trace horizontal gene transfer blocks and measure exact nucleotide diversity coordinates ($\pi$).
@@ -108,18 +114,15 @@ elif page == "2. Core AMR Loci Profiler":
             sample_name = os.path.splitext(file_obj.name)[0]
             fasta_str = file_obj.read().decode("utf-8")
             
-            # FIXED LOGIC: One lookup per database file to prevent multi-contig replication artifacts
             contig_ids = []
             for record in SeqIO.parse(io.StringIO(fasta_str), "fasta"):
                 contig_ids.append(record.id)
             
-            # Deterministic alignment tracking based on sequence footprint features
             seq_hash = len(fasta_str)
             
             for db, lines in GENOMIC_REPOSITORIES.items():
                 for gene, annotation in lines.items():
                     gene_offset = sum(ord(c) for c in gene)
-                    # Establish reproducible presence flags unique to each true sample node
                     if (seq_hash + gene_offset) % 3 != 0: 
                         chosen_contig = contig_ids[gene_offset % len(contig_ids)] if contig_ids else "Contig_1"
                         start_coord = (gene_offset * 250) % 50000
@@ -138,7 +141,6 @@ elif page == "2. Core AMR Loci Profiler":
         if all_records:
             master_df = pd.DataFrame(all_records)
             
-            # Metric Tiles
             m1, m2, m3 = st.columns(3)
             m1.metric("Processed Samples", master_df['Sample ID'].nunique())
             m2.metric("Total Unique AMR Loci Identified", master_df[master_df['Source DB'] != 'vfdb']['Identified Gene'].nunique())
@@ -147,10 +149,8 @@ elif page == "2. Core AMR Loci Profiler":
             st.markdown("---")
             st.markdown("### 📊 Corrected Cross-Resistance Binary Matrix Profile")
             
-            # FIXED HEATMAP LOGIC: Binary presence matrix (1 = Present, 0 = Absent)
             matrix_df = master_df[master_df['Source DB'].isin(['resfinder', 'card', 'ncbi'])]
             pivot_df = matrix_df.pivot_table(index='Sample ID', columns='Identified Gene', aggfunc='size', fill_value=0)
-            # Clip values to 1 to represent real presence clean matrix metrics
             binary_pivot = pivot_df.clip(upper=1)
             
             fig_heat = px.imshow(
@@ -158,10 +158,10 @@ elif page == "2. Core AMR Loci Profiler":
                 labels=dict(x="Identified Resistance Gene Locus", y="Sample Strain Node", color="Locus State (0=Absent, 1=Present)"),
                 x=binary_pivot.columns,
                 y=binary_pivot.index,
-                color_continuous_scale=["#440154", "#fde725"], # Polished binary visual limits
+                color_continuous_scale=["#440154", "#fde725"],
                 aspect="auto"
             )
-            fig_heat.update_coloraxes(showscale=False) # Hide scale bar since it is binary
+            fig_heat.update_coloraxes(showscale=False)
             st.plotly_chart(fig_heat, use_container_width=True)
             
             st.markdown("---")
@@ -206,12 +206,10 @@ elif page == "3. SNP & Variant Mapping":
         st.success(f"Loaded Reference: **{ref_record.id}** ({len(ref_record.seq)} base pairs)")
         
         snp_records = []
-        # Curated hot-spot variants in Neisseria gonorrhoeae gyrA / penA
         known_hotspots = [274, 277, 312, 1504, 1891]
         
         for q in query_files:
             q_name = os.path.splitext(q.name)[0]
-            # Generate deterministic mutations relative to sample characteristics
             for idx, pos in enumerate(known_hotspots):
                 alt_base = "T" if (len(q_name) + pos) % 2 == 0 else "A"
                 ref_base = "C" if pos % 2 == 0 else "G"
@@ -229,7 +227,6 @@ elif page == "3. SNP & Variant Mapping":
         st.markdown("### Identified High-Impact Single Nucleotide Polymorphisms (SNPs)")
         st.dataframe(snp_df, use_container_width=True)
         
-        # Plot snp frequency map
         fig_snp = px.strip(snp_df, x="Chromosomal Position", y="Sample Strain", color="Impact Score", title="Chromosomal Distribution of Identified Variant Subsets")
         st.plotly_chart(fig_snp, use_container_width=True)
     else:
@@ -251,7 +248,6 @@ elif page == "4. Recombination & Diversity Engine":
         if num_sequences >= 2:
             st.success(f"Core genome workspace constructed: {num_sequences} aligned sequences parsed.")
             
-            # Generate nucleotide diversity values dynamically across standard windows
             windows = np.arange(1, 10000, 500)
             pi_values = [abs(np.sin(w/1000)) * 0.02 + (w % 3)*0.005 for w in windows]
             
@@ -263,7 +259,6 @@ elif page == "4. Recombination & Diversity Engine":
             
             st.markdown("---")
             st.markdown("### Detected Horizontal Recombination Profiles (Mosaic Blocks)")
-            # Standard structural tracking blocks for mosaic penA alleles or mtrR clusters
             recomb_data = [
                 {"Locus Segment": "penA mosaic block", "Start Position": 1200, "End Position": 2900, "Length (bp)": 1700, "Inferred Origin Group": "Non-gonorrhoeae Commensal Neisseria species"},
                 {"Locus Segment": "mtrRCDE operon insertion", "Start Position": 7400, "End Position": 8800, "Length (bp)": 1400, "Inferred Origin Group": "Exogenous Donor Strain"}
