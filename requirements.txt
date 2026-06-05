@@ -1,6 +1,9 @@
-streamlit
-pandas
-biopython
-plotly
-fpdf2
-numpy
+streamlit>=1.28.0
+pandas>=2.0.0
+numpy>=1.24.0
+biopython>=1.81
+plotly>=5.17.0
+python-fpdf>=1.7.2
+scipy>=1.10.0
+scikit-learn>=1.3.0
+networkx>=3.0
