@@ -561,4 +561,4 @@ if uploaded_files:
         
         # Or download databases manually:
         abricate --databases --list
-        abricate --setupdb
+        abricate --setupdb""")
