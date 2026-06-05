@@ -7,7 +7,6 @@ import io
 import plotly.express as px
 import plotly.graph_objects as go
 from fpdf import FPDF
-from fpdf.enums import XPos, YPos  # Required for modern fpdf2 positioning
 from Bio import SeqIO
 import numpy as np
 
@@ -140,7 +139,7 @@ def calculate_recombination_frequency(master_df):
             sorted_genes = group.sort_values('Start')
             for i in range(len(sorted_genes)):
                 for j in range(i + 1, len(sorted_genes)):
-                    distance = abs(int(sorted_genes.iloc[j]['Start']) - int(sorted_genes.iloc[i]['Start']))
+                    distance = abs(sorted_genes.iloc[j]['Start'] - sorted_genes.iloc[i]['Start'])
                     if distance <= 50000:  # Within 50kb - likely linked
                         linkage_records.append({
                             'sample': sample,
@@ -239,30 +238,30 @@ def create_network_plot(master_df):
         return None
 
 def generate_pdf_report(summary_df, total_samples, recombination_freq, nucleotide_diversity):
-    """Generates an error-proof, structurally sound PDF byte array adhering to fpdf2 API"""
+    """Generates an error-proof, structurally sound PDF byte array"""
     pdf = FPDF()
     pdf.add_page()
     
     # Title Block
     pdf.set_font("Helvetica", "B", 16)
-    pdf.cell(0, 10, "GeoAMR Surveillance & Clinical Diagnostics Report", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
+    pdf.cell(0, 10, "GeoAMR Surveillance & Clinical Diagnostics Report", new_x="LMARGIN", new_y="NEXT", align="C")
     pdf.set_font("Helvetica", "", 10)
-    pdf.cell(0, 6, "Produced by Henry - Automated Public Health Genomics Output", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
+    pdf.cell(0, 6, "Produced by Henry - Automated Public Health Genomics Output", new_x="LMARGIN", new_y="NEXT", align="C")
     pdf.ln(8)
     
     # Executive Metadata Section
     pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 8, "1. Executive Batch Summary", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 8, "1. Executive Batch Summary", new_x="LMARGIN", new_y="NEXT")
     pdf.set_font("Helvetica", "", 10)
-    pdf.cell(0, 6, f"Total Genomes Successfully Screened: {total_samples}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.cell(0, 6, f"Total Elements Logged Across Registries: {len(summary_df)} total loci hits", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.cell(0, 6, f"Recombination Frequency: {recombination_freq:.4f}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.cell(0, 6, f"Nucleotide Diversity: {nucleotide_diversity:.6f}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 6, f"Total Genomes Successfully Screened: {total_samples}", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 6, f"Total Elements Logged Across Registries: {len(summary_df)} total loci hits", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 6, f"Recombination Frequency: {recombination_freq:.4f}", new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 6, f"Nucleotide Diversity: {nucleotide_diversity:.6f}", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(5)
     
     # Core Findings Table
     pdf.set_font("Helvetica", "B", 12)
-    pdf.cell(0, 8, "2. High-Yield Target Annotations (Top Hits)", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 8, "2. High-Yield Target Annotations (Top Hits)", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(2)
     
     # Render table headers securely
@@ -272,7 +271,7 @@ def generate_pdf_report(summary_df, total_samples, recombination_freq, nucleotid
     pdf.cell(20, 7, "Cov %", border=1)
     pdf.cell(20, 7, "Iden %", border=1)
     pdf.cell(25, 7, "DB Source", border=1)
-    pdf.cell(55, 7, "Product Annotation", border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(55, 7, "Product Annotation", border=1, new_x="LMARGIN", new_y="NEXT")
     
     pdf.set_font("Helvetica", "", 8)
     for idx, row in summary_df.head(35).iterrows():
@@ -288,9 +287,9 @@ def generate_pdf_report(summary_df, total_samples, recombination_freq, nucleotid
         pdf.cell(20, 6, cov, border=1)
         pdf.cell(20, 6, iden, border=1)
         pdf.cell(25, 6, src, border=1)
-        pdf.cell(55, 6, prod, border=1, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.cell(55, 6, prod, border=1, new_x="LMARGIN", new_y="NEXT")
         
-    return pdf.output()
+    return pdf.output(dest='S')
 
 # --- UI Layout Interface & Data Flow ---
 
@@ -354,7 +353,7 @@ if uploaded_files:
             with col5:
                 st.metric("📊 Diversity Index", f"{nucleotide_diversity:.6f}")
             
-            # --- DISPLAY ALL GRANULAR TABLES FIRST ---
+            # --- REQUIREMENT: DISPLAY ALL GRANULAR TABLES FIRST ---
             st.markdown("---")
             st.markdown("### 2. Primary Biological Feature Registries")
             
@@ -368,7 +367,7 @@ if uploaded_files:
                 amr_mask = master_df['Source DB'].isin(['resfinder', 'card', 'ncbi'])
                 final_amr_df = master_df[amr_mask]
                 if not final_amr_df.empty:
-                    st.dataframe(final_amr_df, selection_mode="multi")
+                    st.dataframe(final_amr_df, width="stretch")
                     
                     # Download button for AMR data
                     csv_amr = final_amr_df.to_csv(index=False)
@@ -380,15 +379,15 @@ if uploaded_files:
                 vf_mask = master_df['Source DB'].isin(['vfdb'])
                 final_vf_df = master_df[vf_mask]
                 if not final_vf_df.empty:
-                    st.dataframe(final_vf_df, selection_mode="multi")
+                    st.dataframe(final_vf_df, width="stretch")
                 else:
                     st.info("No explicit structural virulence vectors or pathogenic attributes identified.")
                     
             with tab3:
                 st.write("Comprehensive indexing of all unique loci mapped within this screening operation:")
-                st.dataframe(master_df, selection_mode="multi")
+                st.dataframe(master_df, width="stretch")
             
-            # --- GENOMIC LINEAR FEATURE MAP DISPLAY ---
+            # --- REQUIREMENT: GENOMIC LINEAR FEATURE MAP DISPLAY ---
             st.markdown("---")
             st.markdown("### 3. Structural Contig Loci Coordinates & Linear Mapping")
             
@@ -410,7 +409,7 @@ if uploaded_files:
                     )
                     fig_map.update_traces(marker=dict(symbol="square", line=dict(width=1, color="DarkSlateGrey")))
                     fig_map.update_layout(xaxis_showgrid=True, yaxis_showgrid=True, height=500)
-                    st.plotly_chart(fig_map)
+                    st.plotly_chart(fig_map, width="stretch")
             
             # --- Physical Distance Analysis (Gene Linkage) ---
             st.markdown("---")
@@ -419,7 +418,7 @@ if uploaded_files:
             if not linkage_df.empty:
                 st.markdown(f"**Recombination Frequency: {recombination_freq:.4f}**")
                 st.markdown("Genes found in close physical proximity (<50kb):")
-                st.dataframe(linkage_df.head(20), selection_mode="multi")
+                st.dataframe(linkage_df.head(20), width="stretch")
                 
                 # Visualize distances
                 if len(linkage_df) > 0:
@@ -431,11 +430,11 @@ if uploaded_files:
                         title="Top 20 Gene Pairs by Physical Distance",
                         labels={"distance": "Distance (bp)", "gene_a": "Gene A"}
                     )
-                    st.plotly_chart(fig_dist)
+                    st.plotly_chart(fig_dist, width="stretch")
             else:
                 st.info("No linked gene pairs detected within 50kb distance threshold.")
             
-            # --- EPIDEMIOLOGICAL HEATMAPPING ---
+            # --- REQUIREMENT: EPIDEMIOLOGICAL HEATMAPPING ---
             st.markdown("---")
             st.markdown("### 4. Cross-Resistance Clustering Analytics")
             with st.spinner("Reindexing phenotypical profiles..."):
@@ -455,7 +454,7 @@ if uploaded_files:
                         title_x=0.5,
                         height=max(400, len(amr_matrix) * 30)
                     )
-                    st.plotly_chart(fig_heatmap)
+                    st.plotly_chart(fig_heatmap, width="stretch")
                 else:
                     st.info("Insufficient resistance mutations available to populate cluster visualizations.")
             
@@ -477,7 +476,7 @@ if uploaded_files:
                 )
                 fig_pca.update_traces(textposition='top center', marker=dict(size=15))
                 fig_pca.update_layout(height=500)
-                st.plotly_chart(fig_pca)
+                st.plotly_chart(fig_pca, width="stretch")
             else:
                 st.info("Insufficient data for PCA analysis (need at least 2 samples with AMR genes).")
             
@@ -489,7 +488,6 @@ if uploaded_files:
                 
                 # Create network visualization with plotly
                 try:
-                    import networkx as nx
                     pos = nx.spring_layout(G, k=1, iterations=50)
                     
                     edge_traces = []
@@ -524,11 +522,11 @@ if uploaded_files:
                         xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
                         yaxis=dict(showgrid=False, zeroline=False, showticklabels=False)
                     )
-                    st.plotly_chart(fig_network)
+                    st.plotly_chart(fig_network, width="stretch")
                 except Exception as e:
                     st.warning(f"Network visualization limited: {e}")
             
-            # --- SECURE PDF COMPILATION & DOWNLOAD ---
+            # --- REQUIREMENT: SECURE PDF COMPILATION & DOWNLOAD ---
             st.markdown("---")
             st.markdown("### 5. Regulatory Export Panel")
             
@@ -561,7 +559,7 @@ if uploaded_files:
             
             # --- Final Signature ---
             st.markdown("---")
-            st.markdown('<p class="signature-text">🧬 GeoAMR Engine | Developed by Henry | Clinical Genomics & Public Health Surveillance</p>', unsafe_allow_html=True)
+            st.markdown('<p class="signature-text">🧬 GeoAMR Engine | Developed by Henry, PhD | Clinical Genomics & Public Health Surveillance</p>', unsafe_allow_html=True)
                 
         else:
             st.warning("All files systematically inspected, but zero targets matched criteria configurations across active libraries.")
@@ -576,5 +574,3 @@ if uploaded_files:
         # Or download databases manually:
         abricate --databases --list
         abricate --setupdb
-        ```
-        """)
