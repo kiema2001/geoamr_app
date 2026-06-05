@@ -1,2 +1,8 @@
 samtools
 minimap2
+wget
+curl
+git
+make
+gcc
+g++
