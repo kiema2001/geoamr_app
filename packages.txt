@@ -1,9 +1,4 @@
-wget
+build-essential
 curl
 git
-make
-g++
-gcc
-libxml2-dev
-libxslt-dev
-
+procps
