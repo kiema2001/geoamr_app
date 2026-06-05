@@ -30,6 +30,7 @@ st.markdown("""
 
 st.title("🧬 GeoAMR-Gonorrhoeae Tracker")
 st.subheader("Automated High-Resolution Genomic Surveillance & Network Linkage Mapping")
+st.subheader("Produced by Henry")
 st.markdown("---")
 
 # --- Interactive Sidebar Controls ---
